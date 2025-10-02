@@ -19,12 +19,25 @@
     //      0 - Sair
     // - A cada remoção, insira uma nova peça ao final da fila.
 
-#include <stdio.h>
+
+    // 🧠 Nível Aventureiro: Adição da Pilha de Reserva
+    //
+    // - Implemente uma pilha linear com capacidade para 3 peças.
+    // - Crie funções como inicializarPilha(), push(), pop(), pilhaCheia(), pilhaVazia().
+    // - Permita enviar uma peça da fila para a pilha (reserva).
+    // - Crie um menu com opção:
+    //      2 - Enviar peça da fila para a reserva (pilha)
+    //      3 - Usar peça da reserva (remover do topo da pilha)
+    // - Exiba a pilha junto com a fila após cada ação com mostrarPilha().
+    // - Mantenha a fila sempre com 5 peças (repondo com gerarPeca()).
+
+    #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #define Max_Fila 5
+#define Max_pilha 3
 #define Max_Nome_Peca 15
 
 typedef struct {                //Struct da peca
@@ -39,35 +52,60 @@ typedef struct {            //Struct da fila
     int total;  
 } Fila;
 
+typedef struct {
+    Pecas itens[Max_pilha];
+    int topo;
+} Pilha;
+
+
 
 //-----PROTOTIPO DE FUNCOES AUXILIARES-----
 void Menu();
 void LimparBuffer();
 void GerarPeca(Pecas *p);
+void InicializarPilha(Pilha *pilha);
+int PilhaVazia(Pilha *pilha);
+int PilhaCheia(Pilha *pilha);
 void InicializarFila(Fila *f);
 int FilaCheia(Fila *f);
 int FilaVazia(Fila *f);
 
-//-----PROTOTIPO DE FUNCOES DA FILA
-void Inserir_Enqueue(Fila *f, Pecas *p);        //Insere no final da fila
+//-----PROTOTIPO DE FUNCOES DO MENU
+void Inserir_Enqueue(Fila *f, Pecas *p);  
 Pecas Remover_Dequeue(Fila *f);                  //Remove do inicio
+void Push(Pilha *pilha, Pecas nova);
+Pecas Pop(Pilha *pilha);
 void Exibir(Fila *f);
+void Peek(Pilha *pilha, Pecas *visualizada);
+void ExibirPilha(Pilha *pilha);
+
 
 int main(){
+
     int opcao;
     Fila f;
     Pecas p;
     Pecas peca_removida;
-
+    Pilha pilha;
+  
+    
     srand(time(NULL)); //Para as pecas nao serem sempre iguais
 
     InicializarFila(&f);
+    InicializarPilha(&pilha);
 
-
+    for (int i = 0; i < Max_Fila; i++) {
+        GerarPeca(&p);
+        Inserir_Enqueue(&f, &p);
+    }
+    
     printf("Jogo Tetris Stack\n\n");
     printf("---------------------\n");
 
     do{
+
+        Exibir(&f);
+        ExibirPilha(&pilha);
         Menu();
         printf("Escolha um opcao: \n");
         scanf("%d", &opcao);
@@ -82,18 +120,42 @@ int main(){
                     peca_removida = Remover_Dequeue(&f);
                     if (peca_removida.id != 0) {
                     printf("Peca jogada: [%s, ID:%d]\n", peca_removida.nome, peca_removida.id);
+                    GerarPeca(&p);
+                    Inserir_Enqueue(&f, &p);
                     }
-                    Exibir(&f);
-              
+                                  
                 break;
 
             case 2:
-                    printf("----Inserir peca----\n");
+                    printf("----Reservar Peca----\n");      //push
                     printf("---------------------\n");
+                    
+                    if (!FilaVazia(&f) && !PilhaCheia(&pilha)) {
+                        peca_removida = Remover_Dequeue(&f);
+                        Push(&pilha, peca_removida);
+                        printf("Peca reservada: [%s, ID: %d]\n",peca_removida.nome, peca_removida.id);
+                    
+                        GerarPeca(&p);
+                        Inserir_Enqueue(&f, &p);
+                    } else {
+                        printf("Fila Vazia ou pilha cheia, impossivel reservar peca\n");
+                    }
+                    
+                break;
+
+            case 3:  
+                    printf("----Usar Peca Reservada----\n");    //Usar peca reservadas
+                    printf("---------------------\n");
+                    
+                    peca_removida = Pop(&pilha);
+                    if (peca_removida.id != 0) {
+                    printf("Peca reservada usada: [%s, ID:%d]\n", peca_removida.nome, peca_removida.id);
+                    
                     GerarPeca(&p);
                     Inserir_Enqueue(&f, &p);
-                    Exibir(&f);
-                break;
+                    }
+
+            break;
 
             case 0: 
                 printf("Saindo \n");
@@ -113,7 +175,8 @@ int main(){
 //-----FUNCOES AUXILIARES-----
 void Menu(){
     printf("1- Jogar Peca(dequeue)\n");
-    printf("2- Inserir Peca (enqueue)\n");
+    printf("2- Reservar Peca\n");
+    printf("3- Usar Peca reservada\n");
     printf("0- Sair\n");
 }
 void LimparBuffer(){
@@ -132,32 +195,56 @@ void GerarPeca(Pecas *p) {
 
     printf("Peca gerada: [%s, ID:%d]\n", p->nome, p->id);
 }
-
-
+void InicializarPilha(Pilha *pilha){    //Funcao para a pilha comecar vazia
+    pilha->topo = - 1;
+}
+int PilhaVazia(Pilha *pilha){   //Funcao que veririfca se pilha esta vazia. Para nao fazer isso manualmente 
+    return pilha->topo == -1;
+}
+int PilhaCheia(Pilha *pilha){   //Funcao que verifica se a pilha esta cheia. Para nao fazer isso manualmente 
+    return pilha->topo == Max_pilha -1;
+}
 void InicializarFila(Fila *f){
 
     f->inicio = 0;
     f->fim = 0;
     f->total = 0;
 }
-int FilaCheia(Fila *f) {        //Funcao de verificacao de fila cheia. Para nao fazer manualmente 
+int FilaCheia(Fila *f) {        //Funcao de verificacao de fila cheia. Para nao fazer isso manualmente  
     return f->total == Max_Fila;
 }
 int FilaVazia(Fila *f){         //Funcao de verificacao de fila vazia. Para nao fazer manualmente
     return f->total == 0;
 }
 
-//-----FUNCOES DA FILA-----
-void Inserir_Enqueue(Fila *f, Pecas *p){
-    if (FilaCheia(f)) {                      //Verifica se a fila esta cheia.                            
-        printf("Fila cheia, nao é possivel inserir \n");
+//-----FUNCOES DO MENU-----
+void Inserir_Enqueue(Fila *f, Pecas *p) {
+    if (FilaCheia(f)) {                         //Verifica se a fila esta cheia
+        printf("Fila cheia, nao e possivel inserir\n");
         return;
     }
-    //Insere 
-    f->itens[f->fim] = *p;
-    f->fim = (f->fim +1) % Max_Fila;    //Logica circular
-    f->total++;                    //Atualizacao da fila com incremento
-
+    f->itens[f->fim] = *p;                  //Insere a peca
+    f->fim = (f->fim + 1) % Max_Fila;       //Logica recursiva
+    f->total++;                             //Incrementa a fila
+}
+void Push(Pilha *pilha, Pecas nova){   //Push é insercao na pilha
+        if (PilhaCheia(pilha)){         //Verificacao
+            printf("Pilha cheia\n");
+            return;
+        }
+        
+        pilha->topo ++;                      //Incrementa o novo elemento e so depois 
+        pilha->itens[pilha->topo] = nova;   //Atribui o indice ao novo elemento
+}
+Pecas Pop(Pilha *pilha){
+    Pecas peca_nula = { .id = 0, .nome = "" };
+    if (PilhaVazia(pilha)){                         //Verifica se a pilha nao esta vazia
+        printf("Pilha vazia\n");
+        return peca_nula;
+    }
+    Pecas removida = pilha->itens[pilha->topo];     //Sobe a peca
+    pilha->topo--;                                  //Atualiza o topo da pilha
+    return removida;
 }
 
 Pecas Remover_Dequeue(Fila *f) {
@@ -173,13 +260,12 @@ Pecas Remover_Dequeue(Fila *f) {
     f->total--;                                     //Atualiza a fila com decremento 
 
     return removida;
-}
-
+} 
 void Exibir(Fila *f){
 
     printf("Fila: ");
 
-    if (FilaVazia(f)) {                         //Verifica se a fila noa esta vazia
+    if (FilaVazia(f)) {                     //Verifica se a fila noa esta vazia
         printf("Fila Vazia, não há o que exibir\n");
         return;
     }
@@ -189,26 +275,38 @@ void Exibir(Fila *f){
     
         printf("[%s, ID:%d]", f->itens[id_atual].nome, f->itens[id_atual].id);
         
-        if (i < f->total - 1) {     //Imprime '-' entre os elementos da fila
-            printf(" - ");      
+        if (i < f->total - 1) {     //Imprime ' ' entre os elementos da fila
+            printf(" \t ");      
         }
 
         id_atual = (id_atual + 1) % Max_Fila;   // Move para a próxima posição da fila segundo a lógica circular
     }
     printf("\n");
+}
+void Peek(Pilha *pilha, Pecas *visualizada){   //Essa funcao nao retorna
+    if (PilhaVazia(pilha)) {
+        printf("Pilha vazia\n");
+        return;
+    }
+    *visualizada = pilha->itens[pilha->topo];
 
 }
+void ExibirPilha(Pilha *pilha){             //Funcao para exibir a pilha
+    if (PilhaVazia(pilha)){
+        printf("Pilha de Reserva (topo->base): Pilha vazia\n");
+        return;
+    }
+    
+    
+    printf("Pilha de Reserva(topo->base): \n");
 
-    // 🧠 Nível Aventureiro: Adição da Pilha de Reserva
-    //
-    // - Implemente uma pilha linear com capacidade para 3 peças.
-    // - Crie funções como inicializarPilha(), push(), pop(), pilhaCheia(), pilhaVazia().
-    // - Permita enviar uma peça da fila para a pilha (reserva).
-    // - Crie um menu com opção:
-    //      2 - Enviar peça da fila para a reserva (pilha)
-    //      3 - Usar peça da reserva (remover do topo da pilha)
-    // - Exiba a pilha junto com a fila após cada ação com mostrarPilha().
-    // - Mantenha a fila sempre com 5 peças (repondo com gerarPeca()).
+    for (int i =  pilha->topo ; i >= 0; i--) { //Laco onde o for comeca do topo(p->topo) e 
+                                          //percorre ate 0 (i >=0) o i-- vai descendo do topo ate a base
+        printf("[%s, %d]\n", pilha->itens[i].nome, pilha->itens[i].id);
+    }
+    printf("\n");
+
+}
 
 
     // 🔄 Nível Mestre: Integração Estratégica entre Fila e Pilha
