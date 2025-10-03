@@ -31,7 +31,25 @@
     // - Exiba a pilha junto com a fila após cada ação com mostrarPilha().
     // - Mantenha a fila sempre com 5 peças (repondo com gerarPeca()).
 
-    #include <stdio.h>
+
+    // 🔄 Nível Mestre: Integração Estratégica entre Fila e Pilha
+    //
+    // - Implemente interações avançadas entre as estruturas:
+    //      4 - Trocar a peça da frente da fila com o topo da pilha
+    //      5 - Trocar os 3 primeiros da fila com as 3 peças da pilha
+    // - Para a opção 4:
+    //      Verifique se a fila não está vazia e a pilha tem ao menos 1 peça.
+    //      Troque os elementos diretamente nos arrays.
+    // - Para a opção 5:
+    //      Verifique se a pilha tem exatamente 3 peças e a fila ao menos 3.
+    //      Use a lógica de índice circular para acessar os primeiros da fila.
+    // - Sempre valide as condições antes da troca e informe mensagens claras ao usuário.
+    // - Use funções auxiliares, se quiser, para modularizar a lógica de troca.
+    // - O menu deve ficar assim:
+    //      4 - Trocar peça da frente com topo da pilha
+    //      5 - Trocar 3 primeiros da fila com os 3 da pilha
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -78,6 +96,9 @@ Pecas Pop(Pilha *pilha);
 void Exibir(Fila *f);
 void Peek(Pilha *pilha, Pecas *visualizada);
 void ExibirPilha(Pilha *pilha);
+void TrocarPecaAtual(Fila *f, Pilha *pilha);
+void TrocaMultipla(Fila *f, Pilha *pilha);
+
 
 
 int main(){
@@ -94,18 +115,23 @@ int main(){
     InicializarFila(&f);
     InicializarPilha(&pilha);
 
+    printf("\n\n---------------------\n");
+    printf("Jogo Tetris Stack\n");
+    printf("---------------------\n");
+
+    printf("\nPecas Geradas:\t");
     for (int i = 0; i < Max_Fila; i++) {
         GerarPeca(&p);
         Inserir_Enqueue(&f, &p);
+        printf("[%s, ID:%d]    ", p.nome, p.id);
+
     }
-    
-    printf("Jogo Tetris Stack\n\n");
-    printf("---------------------\n");
 
     do{
 
         Exibir(&f);
         ExibirPilha(&pilha);
+        printf("\n");
         Menu();
         printf("Escolha um opcao: \n");
         scanf("%d", &opcao);
@@ -122,8 +148,7 @@ int main(){
                     printf("Peca jogada: [%s, ID:%d]\n", peca_removida.nome, peca_removida.id);
                     GerarPeca(&p);
                     Inserir_Enqueue(&f, &p);
-                    }
-                                  
+                    }             
                 break;
 
             case 2:
@@ -133,14 +158,13 @@ int main(){
                     if (!FilaVazia(&f) && !PilhaCheia(&pilha)) {
                         peca_removida = Remover_Dequeue(&f);
                         Push(&pilha, peca_removida);
-                        printf("Peca reservada: [%s, ID: %d]\n",peca_removida.nome, peca_removida.id);
+                        printf("Peca reservada: [%s, ID: %d]: ",peca_removida.nome, peca_removida.id);
                     
                         GerarPeca(&p);
                         Inserir_Enqueue(&f, &p);
                     } else {
                         printf("Fila Vazia ou pilha cheia, impossivel reservar peca\n");
-                    }
-                    
+                    }   
                 break;
 
             case 3:  
@@ -154,16 +178,25 @@ int main(){
                     GerarPeca(&p);
                     Inserir_Enqueue(&f, &p);
                     }
+            break;
 
+            case 4: 
+                    TrocarPecaAtual(&f, &pilha);      //Trocar peca atual
+            break;
+
+            case 5:
+                    TrocaMultipla(&f, &pilha);      //Trocar multipla
             break;
 
             case 0: 
                 printf("Saindo \n");
-                break;
+                
+            break;
         
         default:
             printf("Opcao invalida\n");
-            break;
+            
+        break;
         }
 
     } while (opcao != 0);
@@ -177,6 +210,8 @@ void Menu(){
     printf("1- Jogar Peca(dequeue)\n");
     printf("2- Reservar Peca\n");
     printf("3- Usar Peca reservada\n");
+    printf("4- Trocar Peca Atual (fila <-> pilha)\n");
+    printf("5- Troca Multipla 3 primeiras pecas (fila <-> pilha)\n");
     printf("0- Sair\n");
 }
 void LimparBuffer(){
@@ -192,8 +227,6 @@ void GerarPeca(Pecas *p) {
 
     strcpy(p->nome, nomes[indice]);     //Copia o nome gerado para a fila
     p->id = contador_id++;              //Atualiza o id com incremento
-
-    printf("Peca gerada: [%s, ID:%d]\n", p->nome, p->id);
 }
 void InicializarPilha(Pilha *pilha){    //Funcao para a pilha comecar vazia
     pilha->topo = - 1;
@@ -263,7 +296,7 @@ Pecas Remover_Dequeue(Fila *f) {
 } 
 void Exibir(Fila *f){
 
-    printf("Fila: ");
+    printf("\nFila: ");
 
     if (FilaVazia(f)) {                     //Verifica se a fila noa esta vazia
         printf("Fila Vazia, não há o que exibir\n");
@@ -276,7 +309,7 @@ void Exibir(Fila *f){
         printf("[%s, ID:%d]", f->itens[id_atual].nome, f->itens[id_atual].id);
         
         if (i < f->total - 1) {     //Imprime ' ' entre os elementos da fila
-            printf(" \t ");      
+            printf("    ");      
         }
 
         id_atual = (id_atual + 1) % Max_Fila;   // Move para a próxima posição da fila segundo a lógica circular
@@ -297,36 +330,38 @@ void ExibirPilha(Pilha *pilha){             //Funcao para exibir a pilha
         return;
     }
     
-    
-    printf("Pilha de Reserva(topo->base): \n");
+    printf("Pilha de Reserva(topo->base):\t");
 
     for (int i =  pilha->topo ; i >= 0; i--) { //Laco onde o for comeca do topo(p->topo) e 
                                           //percorre ate 0 (i >=0) o i-- vai descendo do topo ate a base
-        printf("[%s, %d]\n", pilha->itens[i].nome, pilha->itens[i].id);
+        printf("[%s, %d]\t", pilha->itens[i].nome, pilha->itens[i].id);
     }
     printf("\n");
 
 }
 
+void TrocarPecaAtual(Fila *f, Pilha *pilha){
+    if (FilaVazia(f) || PilhaVazia(pilha)){
+        printf("Impossivel trocar: fila ou pilha vazia.\n");
+        return;
+    }
+    Pecas temp = f->itens[f->inicio];
+    f->itens[f->inicio] = pilha->itens[pilha->topo];
+    pilha->itens[pilha->topo] = temp;
+    printf("Trocou a peca da frente da fila com o topo da pilha!\n");
+}
 
-    // 🔄 Nível Mestre: Integração Estratégica entre Fila e Pilha
-    //
-    // - Implemente interações avançadas entre as estruturas:
-    //      4 - Trocar a peça da frente da fila com o topo da pilha
-    //      5 - Trocar os 3 primeiros da fila com as 3 peças da pilha
-    // - Para a opção 4:
-    //      Verifique se a fila não está vazia e a pilha tem ao menos 1 peça.
-    //      Troque os elementos diretamente nos arrays.
-    // - Para a opção 5:
-    //      Verifique se a pilha tem exatamente 3 peças e a fila ao menos 3.
-    //      Use a lógica de índice circular para acessar os primeiros da fila.
-    // - Sempre valide as condições antes da troca e informe mensagens claras ao usuário.
-    // - Use funções auxiliares, se quiser, para modularizar a lógica de troca.
-    // - O menu deve ficar assim:
-    //      4 - Trocar peça da frente com topo da pilha
-    //      5 - Trocar 3 primeiros da fila com os 3 da pilha
-
-
-    //return 0;
-//}
+void TrocaMultipla(Fila *f, Pilha *pilha){
+    if (f->total < 3 || pilha->topo < 2){
+        printf("Impossivel trocar: eh necessario pelo menos 3 pecas em cada.\n");
+        return;
+    }
+    for (int i = 0; i < 3; i++){
+        int posFila = (f->inicio + i) % Max_Fila;
+        Pecas temp = f->itens[posFila];
+        f->itens[posFila] = pilha->itens[pilha->topo - i];
+        pilha->itens[pilha->topo - i] = temp;
+    }
+    printf("Trocou as 3 primeiras da fila com as 3 da pilha!\n");
+}
 
